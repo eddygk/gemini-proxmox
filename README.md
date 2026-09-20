@@ -154,9 +154,21 @@ sudo systemctl enable --now gemini-proxmox
    * **Token URL:** `https://pve-mcp.example.com/oauth/token`
 5. Click **Connect**. Gemini will authorize via browser redirect, exchange tokens, and immediately discover all 12 Proxmox tools.
 
-### 2. Connecting Any Streamable HTTP MCP Client
+### 2. Universal MCP Client Compatibility & Examples
 
-Because this gateway implements standard **Model Context Protocol (MCP) over Streamable HTTP** and standard RFC 6749 / OpenID Connect specifications, it works out-of-the-box with **any MCP client or agent framework** supporting Streamable HTTP:
+Because this gateway implements the official **Model Context Protocol (MCP) Streamable HTTP** specification alongside RFC 6749 OAuth 2.0 / OpenID Connect, it functions as a universal hypervisor control plane for any compliant MCP client.
+
+#### Supported Client Archetypes & Examples
+
+| Client Category | Client Examples | Supported Authentication Methods |
+|---|---|---|
+| **Frontier Cloud Platforms** | **Google Gemini (Gemini Spark / Connected Apps)** | OAuth 2.0 (Authorization Code + PKCE, OIDC discovery) |
+| **Developer IDEs & Coding Agents** | **Cursor, VS Code (Cline, Roo Code, Continue), Windsurf** | Streamable HTTP with Bearer Auth / Pre-shared Token |
+| **Desktop & CLI Assistants** | **Claude Desktop, Claude Code** (via remote HTTP bridge) | Remote Streamable HTTP endpoint with Bearer header |
+| **Open-Source AI Interfaces** | **LibreChat, OpenWebUI, Dify** | Remote MCP server with Bearer Token or OAuth 2.0 |
+| **Autonomous Agent Frameworks** | **LangGraph, CrewAI, AutoGen, LlamaIndex, Python MCP SDK** | Native `streamable_http_client` with JWT / Bearer Auth |
+
+#### Connection Specifications
 
 * **Endpoint URL:** `https://pve-mcp.example.com/<MCP_SECRET_PATH>/mcp`
 * **OAuth 2.0 Auto-Discovery:** Point your client or agent library to `https://pve-mcp.example.com/.well-known/oauth-authorization-server` or `/.well-known/openid-configuration`.
@@ -166,6 +178,57 @@ Because this gateway implements standard **Model Context Protocol (MCP) over Str
   * **Grant Types Supported:** `authorization_code` (with S256 PKCE), `refresh_token`, `client_credentials`.
   * **Client Auth Methods:** `client_secret_post` and `client_secret_basic`.
 * **Static Bearer Token Auth:** For developer environments or agent frameworks that pass static tokens rather than interactive OAuth redirects, supply `Authorization: Bearer <API_BEARER_TOKEN>` or a valid JWT directly in the request headers.
+
+#### Example 1: Developer IDE / Desktop Configuration (`mcpServers.json` / Cursor / Cline)
+
+For clients that support direct HTTP MCP endpoints with custom headers:
+
+```json
+{
+  "mcpServers": {
+    "proxmox-operator": {
+      "url": "https://pve-mcp.example.com/<MCP_SECRET_PATH>/mcp",
+      "headers": {
+        "Authorization": "Bearer <YOUR-JWT-OR-STATIC-TOKEN>"
+      }
+    }
+  }
+}
+```
+
+#### Example 2: LibreChat / OpenWebUI Remote MCP Integration
+
+In enterprise chat interfaces supporting remote HTTP MCP servers, configure the tool gateway:
+* **Server Name:** `Proxmox VE Operator`
+* **Type:** `Streamable HTTP`
+* **URL:** `https://pve-mcp.example.com/<MCP_SECRET_PATH>/mcp`
+* **Auth Type:** `Bearer Token` or `OAuth 2.0 (Code Flow)`
+* **Discovery Endpoint:** `https://pve-mcp.example.com/.well-known/oauth-authorization-server`
+
+#### Example 3: Python MCP SDK Client Script
+
+Connecting programmatically in Python using the official `mcp` SDK:
+
+```python
+import asyncio
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+
+async def main():
+    headers = {"Authorization": "Bearer <YOUR-JWT-OR-STATIC-TOKEN>"}
+    async with streamable_http_client(
+        "https://pve-mcp.example.com/<MCP_SECRET_PATH>/mcp", 
+        headers=headers
+    ) as (read_stream, write_stream):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            tools = await session.list_tools()
+            print(f"Discovered {len(tools.tools)} Proxmox tools:")
+            for tool in tools.tools:
+                print(f" - {tool.name}: {tool.description}")
+
+asyncio.run(main())
+```
 
 > [!NOTE]
 > **Edge WAF Considerations for Non-Google Clients:**
