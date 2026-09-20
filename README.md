@@ -6,7 +6,7 @@
 [![Proxmox VE](https://img.shields.io/badge/Proxmox%20VE-8.x%20%7C%209.x-E57000.svg)](https://www.proxmox.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An enterprise-grade, defense-in-depth operations gateway exposing Proxmox VE hypervisor management to **Google Gemini (Custom Connected Apps for Gemini Spark)** and autonomous AI agents via the **Model Context Protocol (MCP)** over Streamable HTTP, while retaining authenticated local REST telemetry for internal monitoring and SRE automation pipelines.
+An enterprise-grade, defense-in-depth operations gateway exposing Proxmox VE hypervisor management to **Google Gemini (Custom Connected Apps for Gemini Spark)** and **any MCP client** supporting the **Model Context Protocol (MCP)** over **Streamable HTTP** with RFC OAuth 2.0 / Bearer authentication, while retaining authenticated local REST telemetry for internal monitoring and SRE automation pipelines.
 
 ---
 
@@ -48,6 +48,7 @@ flowchart TD
 ## Key Features
 
 * **Native Model Context Protocol (MCP):** Implements the official MCP Streamable HTTP transport for stateful, low-latency AI tool execution.
+* **Universal MCP Client Compatibility:** Built strictly on the open Model Context Protocol (MCP) Streamable HTTP specification. Works out of the box with **Google Gemini (Custom Connected Apps)** and **any MCP client or agent framework** supporting Streamable HTTP and OAuth 2.0 (Authorization Code + PKCE) or Bearer token authentication (including Claude Desktop, Cursor, LibreChat, OpenWebUI, or custom LangChain/LlamaIndex/CrewAI agents).
 * **Built-in OAuth 2.0 & OIDC Authorization Server:** Full RFC-compliant OpenID Connect discovery (`/.well-known/openid-configuration`, `/.well-known/oauth-authorization-server`), browser consent redirect flow (`/oauth/authorize`), and token issuance with signed HMAC-SHA256 JWT `id_token`.
 * **Dual-Format Body Parser:** Handles both standard `application/x-www-form-urlencoded` and Google JSON token exchange payloads without FastAPI stream consumption errors.
 * **5-Layer Defense-in-Depth:**
@@ -139,7 +140,9 @@ sudo systemctl enable --now gemini-proxmox
 
 ---
 
-## Connecting to Google Gemini
+## Connecting to AI Clients
+
+### 1. Connecting to Google Gemini (Spark / Connected Apps)
 
 1. Open **Google Gemini** -> **Connected Apps** -> **Add Custom App**.
 2. **App Name:** `Proxmox VE Operator`
@@ -149,7 +152,24 @@ sudo systemctl enable --now gemini-proxmox
    * **Client Secret:** Matches `OAUTH_CLIENT_SECRET` in `.env`.
    * **Authorization URL:** `https://pve-mcp.example.com/oauth/authorize`
    * **Token URL:** `https://pve-mcp.example.com/oauth/token`
-5. Click **Connect**. Gemini will authorize and immediately discover all 12 Proxmox tools.
+5. Click **Connect**. Gemini will authorize via browser redirect, exchange tokens, and immediately discover all 12 Proxmox tools.
+
+### 2. Connecting Any Streamable HTTP MCP Client
+
+Because this gateway implements standard **Model Context Protocol (MCP) over Streamable HTTP** and standard RFC 6749 / OpenID Connect specifications, it works out-of-the-box with **any MCP client or agent framework** supporting Streamable HTTP:
+
+* **Endpoint URL:** `https://pve-mcp.example.com/<MCP_SECRET_PATH>/mcp`
+* **OAuth 2.0 Auto-Discovery:** Point your client or agent library to `https://pve-mcp.example.com/.well-known/oauth-authorization-server` or `/.well-known/openid-configuration`.
+* **OAuth 2.0 Manual Setup:**
+  * **Authorization URL:** `https://pve-mcp.example.com/oauth/authorize`
+  * **Token URL:** `https://pve-mcp.example.com/oauth/token`
+  * **Grant Types Supported:** `authorization_code` (with S256 PKCE), `refresh_token`, `client_credentials`.
+  * **Client Auth Methods:** `client_secret_post` and `client_secret_basic`.
+* **Static Bearer Token Auth:** For developer environments or agent frameworks that pass static tokens rather than interactive OAuth redirects, supply `Authorization: Bearer <API_BEARER_TOKEN>` or a valid JWT directly in the request headers.
+
+> [!NOTE]
+> **Edge WAF Considerations for Non-Google Clients:**
+> The Cloudflare WAF Custom Rule in this guide specifically allows Google ASNs (`AS15169`, `AS396982`). If you are connecting a client from another cloud provider (e.g. AWS, Anthropic, Azure) or a local IP, update your Cloudflare WAF rule to permit your client's source IP / ASN, or route traffic over a private LAN / WireGuard tunnel.
 
 ---
 
