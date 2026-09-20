@@ -1,0 +1,21 @@
+[Unit]
+Description=Gemini Proxmox VE Operator Gateway
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gateway
+Group=gateway
+WorkingDirectory=/opt/gemini-proxmox
+EnvironmentFile=-/opt/gemini-proxmox/.env
+ExecStart=/opt/gemini-proxmox/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --log-level info
+Restart=always
+RestartSec=5s
+ProtectSystem=full
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

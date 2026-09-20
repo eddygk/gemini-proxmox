@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e2430" />
+      <stop offset="100%" stop-color="#0f131a" />
+    </linearGradient>
+
+    <!-- Telemetry Pulse Glow -->
+    <linearGradient id="orangePulse" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ff7a00" />
+      <stop offset="50%" stop-color="#ff9d2e" />
+      <stop offset="100%" stop-color="#ff5500" />
+    </linearGradient>
+
+    <!-- Outer Card Glow -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Pulse Wave Glow -->
+    <filter id="waveGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#ff7a00" flood-opacity="0.8" />
+    </filter>
+  </defs>
+
+  <!-- Base App Icon Rounded Background -->
+  <rect x="16" y="16" width="480" height="480" rx="96" ry="96" fill="url(#bgGradient)" stroke="#2b3445" stroke-width="4" />
+
+  <!-- Inner Subtle Border -->
+  <rect x="24" y="24" width="464" height="464" rx="88" ry="88" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.08" />
+
+  <!-- Isometric Server Cluster Group -->
+  <g transform="translate(256, 250)">
+    <!-- Top Face of Server -->
+    <polygon points="0,-115 110,-52 0,11 -110,-52" fill="#2d3748" stroke="#1a202c" stroke-width="6" stroke-linejoin="round" />
+    <polygon points="0,-115 0,11 110,-52" fill="#3a475d" opacity="0.4" />
+
+    <!-- Upper Block Left Face -->
+    <polygon points="-110,-46 0,17 0,65 -110,2" fill="#1e2633" stroke="#121822" stroke-width="6" stroke-linejoin="round" />
+    <!-- Upper Block Right Face -->
+    <polygon points="0,17 110,-46 110,2 0,65" fill="#252f3f" stroke="#121822" stroke-width="6" stroke-linejoin="round" />
+
+    <!-- Middle Block Left Face -->
+    <polygon points="-110,12 0,75 0,123 -110,60" fill="#1a222e" stroke="#121822" stroke-width="6" stroke-linejoin="round" />
+    <!-- Middle Block Right Face -->
+    <polygon points="0,75 110,12 110,60 0,123" fill="#202a39" stroke="#121822" stroke-width="6" stroke-linejoin="round" />
+
+    <!-- Bottom Block Left Face -->
+    <polygon points="-110,70 0,133 0,181 -110,118" fill="#161d27" stroke="#121822" stroke-width="6" stroke-linejoin="round" />
+    <!-- Bottom Block Right Face -->
+    <polygon points="0,133 110,70 110,118 0,181" fill="#1b2432" stroke="#121822" stroke-width="6" stroke-linejoin="round" />
+
+    <!-- Status LEDs on Bottom Block -->
+    <!-- Left Face LEDs (Green Active) -->
+    <circle cx="-75" cy="116" r="6" fill="#10b981" filter="url(#glow)" />
+    <circle cx="-55" cy="127" r="6" fill="#10b981" filter="url(#glow)" />
+    <circle cx="-35" cy="138" r="6" fill="#34d399" filter="url(#glow)" />
+
+    <!-- Right Face LEDs (Blue/Amber) -->
+    <circle cx="35" cy="138" r="6" fill="#38bdf8" filter="url(#glow)" />
+    <circle cx="55" cy="127" r="6" fill="#38bdf8" filter="url(#glow)" />
+    <circle cx="75" cy="116" r="6" fill="#fbbf24" filter="url(#glow)" />
+
+    <!-- Telemetry Pulse Waveform Ribbon (Wrapping the Node) -->
+    <path d="M -130,55 L -100,55 L -80,20 L -60,95 L -35,55 L 0,85 L 30,5 L 55,95 L 80,45 L 105,75 L 130,55"
+          fill="none"
+          stroke="url(#orangePulse)"
+          stroke-width="12"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          filter="url(#waveGlow)" />
+  </g>
+</svg>
