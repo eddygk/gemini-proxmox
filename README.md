@@ -6,7 +6,7 @@
 [![Proxmox VE](https://img.shields.io/badge/Proxmox%20VE-8.x%20%7C%209.x-E57000.svg)](https://www.proxmox.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An enterprise-grade, defense-in-depth operations gateway exposing Proxmox VE hypervisor management to **Google Gemini (Custom Connected Apps for Gemini Spark)** via the **Model Context Protocol (MCP)** over Streamable HTTP, while retaining authenticated local REST telemetry for private homelab agents.
+An enterprise-grade, defense-in-depth operations gateway exposing Proxmox VE hypervisor management to **Google Gemini (Custom Connected Apps for Gemini Spark)** and autonomous AI agents via the **Model Context Protocol (MCP)** over Streamable HTTP, while retaining authenticated local REST telemetry for internal monitoring and SRE automation pipelines.
 
 ---
 
@@ -23,10 +23,10 @@ flowchart TD
         Tunnel["Cloudflare Zero Trust Tunnel\n(Encrypted QUIC)"]
     end
 
-    subgraph HomelabDMZ["Isolated DMZ (e.g. 10.0.0.0/24)"]
+    subgraph SecureDMZ["Isolated DMZ / VPC (e.g. 10.0.0.0/24)"]
         CFTunnelGuest["Ingress Container (cf-tunnel)"]
         Gateway["CT / Host (gemini-proxmox)\n• FastAPI + FastMCP (Streamable HTTP)\n• OAuth 2.0 / OIDC Authorization Server\n• Capability Path: /<MCP_SECRET_PATH>/mcp\n• Blast Radius Guardrail: PROTECTED_VMIDS"]
-        LocalAgent["Local Agents & Knowledge Graphs\n(Bearer Auth / LAN REST API)"]
+        LocalAgent["Internal Monitoring & SRE Automation\n(Bearer Auth / Internal REST API)"]
     end
 
     subgraph Hypervisor["Proxmox VE Hypervisor"]
