@@ -111,6 +111,8 @@ class ProxmoxOps:
 
     # --- Unified Guest Lifecycle Controls (LXC & QEMU) ---
     def start_guest(self, vmid: int) -> dict:
+        if not settings.allow_power_actions:
+            return {"error": "Power actions are disabled by administrator policy (ALLOW_POWER_ACTIONS=false)."}
         try:
             node, gtype, name = self._resolve_guest(vmid)
             target = getattr(self.pve.nodes(node), gtype)(vmid)
@@ -120,6 +122,8 @@ class ProxmoxOps:
             return {"status": "error", "action": "start", "vmid": vmid, "error": str(e)}
 
     def stop_guest(self, vmid: int) -> dict:
+        if not settings.allow_power_actions:
+            return {"error": "Power actions are disabled by administrator policy (ALLOW_POWER_ACTIONS=false)."}
         if vmid in settings.protected_vmids:
             return {"error": f"Rejected: Guest {vmid} is in protected_vmids (stopping it would disrupt critical infrastructure)."}
         try:
@@ -131,6 +135,8 @@ class ProxmoxOps:
             return {"status": "error", "action": "stop", "vmid": vmid, "error": str(e)}
 
     def reboot_guest(self, vmid: int) -> dict:
+        if not settings.allow_power_actions:
+            return {"error": "Power actions are disabled by administrator policy (ALLOW_POWER_ACTIONS=false)."}
         if vmid in settings.protected_vmids:
             return {"error": f"Rejected: Guest {vmid} is in protected_vmids (rebooting it would disrupt critical infrastructure)."}
         try:
@@ -142,6 +148,8 @@ class ProxmoxOps:
             return {"status": "error", "action": "reboot", "vmid": vmid, "error": str(e)}
 
     def shutdown_guest(self, vmid: int) -> dict:
+        if not settings.allow_power_actions:
+            return {"error": "Power actions are disabled by administrator policy (ALLOW_POWER_ACTIONS=false)."}
         if vmid in settings.protected_vmids:
             return {"error": f"Rejected: Guest {vmid} is in protected_vmids (shutting it down would disrupt critical infrastructure)."}
         try:
@@ -195,6 +203,8 @@ class ProxmoxOps:
 
     # --- Hypervisor Node Control ---
     def reboot_node(self, node: str = "pve", confirm: bool = False) -> dict:
+        if not settings.allow_power_actions:
+            return {"error": "Hypervisor power actions are disabled by administrator policy (ALLOW_POWER_ACTIONS=false)."}
         if not confirm:
             return {"error": "Explicit confirmation required: confirm=True."}
         try:

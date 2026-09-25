@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Blast-Radius Safeguards: Protect critical infrastructure guests from power actions
     protected_vmids: list[int] = []
 
+    # Power & State Modification Controls: Set to True to allow start, stop, reboot, and shutdown
+    allow_power_actions: bool = False
+
     model_config = {
         "env_file": (".env", "/opt/gemini-proxmox/.env"),
         "env_file_encoding": "utf-8",

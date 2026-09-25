@@ -1,4 +1,4 @@
-# Gemini-Proxmox VE Operator (MCP Gateway)
+# Proxmox VE Universal MCP & Meta Muse Gateway
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com)
@@ -6,7 +6,7 @@
 [![Proxmox VE](https://img.shields.io/badge/Proxmox%20VE-8.x%20%7C%209.x-E57000.svg)](https://www.proxmox.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An enterprise-grade, defense-in-depth operations gateway exposing Proxmox VE hypervisor management to **Google Gemini (Custom Connected Apps for Gemini Spark)** and **any MCP client** supporting the **Model Context Protocol (MCP)** over **Streamable HTTP** with RFC OAuth 2.0 / Bearer authentication, while retaining authenticated local REST telemetry for internal monitoring and SRE automation pipelines.
+An enterprise-grade, defense-in-depth operations gateway exposing Proxmox VE hypervisor management to **Meta Muse**, **Google Gemini (Custom Connected Apps)**, and **any MCP client** supporting the **Model Context Protocol (MCP)** over **Streamable HTTP** with RFC OAuth 2.0 / Bearer authentication, while retaining authenticated local REST telemetry for internal monitoring and SRE automation pipelines.
 
 ---
 
@@ -96,43 +96,44 @@ On Cloudflare's Free tier, **Bot Fight Mode** runs in an isolated pipeline prior
 
 ---
 
-## Installation & Setup
+## Installation & Quickstart
 
-### 1. Proxmox VE RBAC Configuration
-Run on your Proxmox VE host as `root`:
+### 1. Automated Proxmox VE RBAC Provisioning
+Log in to your Proxmox VE shell as `root` and run our least-privilege setup script:
 ```bash
-# 1. Create custom role without deletion rights
-pveum role add GeminiOps -privs "VM.Audit VM.PowerMgmt VM.Snapshot VM.Backup Datastore.AllocateSpace"
-
-# 2. Create dedicated service user
-pveum user add gemini-operator@pve -comment "Gemini MCP Operator Service User"
-
-# 3. Create API token with privilege separation
-pveum user token add gemini-operator@pve operator -privsep 1
-
-# 4. Assign permissions across cluster paths
-pveum acl modify /vms -user gemini-operator@pve -role GeminiOps
-pveum acl modify /nodes -user gemini-operator@pve -role GeminiOps
-pveum acl modify /storage -user gemini-operator@pve -role GeminiOps
+# Downloads and creates the MCPUniversalOps role and dedicated service token
+curl -sSL https://raw.githubusercontent.com/eddygk/gemini-proxmox/main/scripts/setup-pve-user.sh | bash
 ```
+*Creates a dedicated service user and API token with `VM.Audit`, `VM.PowerMgmt`, `VM.Snapshot`, and `VM.Backup` permissions while strictly omitting container/VM deletion privileges.*
 
-### 2. Environment Configuration
-Clone the repository and copy the environment template:
+### 2. Interactive Setup Wizard (Auto-Generates `.env`)
+Clone the repository and run the interactive CLI wizard:
 ```bash
-git clone https://github.com/your-username/gemini-proxmox.git
+git clone https://github.com/eddygk/gemini-proxmox.git
 cd gemini-proxmox
-cp .env.example .env
-```
-Edit `.env` with your actual Proxmox API token, domain, and secret capability path.
+pip install -r requirements.txt
 
-### 3. Running with Systemd (LXC / VM)
+# Launch the interactive configuration wizard:
+python -m app.setup
+```
+The wizard will:
+1. Prompt for Proxmox credentials and test the connection with a live API pre-flight probe.
+2. Dynamically discover cluster VMs and LXCs and prompt you to select `PROTECTED_VMIDS`.
+3. Set your power action safety policy (`ALLOW_POWER_ACTIONS`).
+4. Auto-generate cryptographically secure tokens (`GATEWAY_SECRET`, `OAUTH_CLIENT_SECRET`, and capability path).
+5. Output your validated `.env` configuration file and display ready-to-paste Meta Muse and Gemini connection credentials.
+
+### 3. Running with Docker Compose
 ```bash
-# Create service user and venv
+docker compose up -d
+```
+
+### 4. Running with Systemd (LXC / Debian Host)
+```bash
 sudo useradd -r -s /usr/sbin/nologin gateway
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 
-# Install systemd service
 sudo cp gemini-proxmox.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now gemini-proxmox
@@ -142,7 +143,20 @@ sudo systemctl enable --now gemini-proxmox
 
 ## Connecting to AI Clients
 
-### 1. Connecting to Google Gemini (Spark / Connected Apps)
+### 1. Connecting to Meta Muse (Custom Connectors)
+
+1. Open **Meta Muse** and navigate to **Settings > Connectors**.
+2. Select **Add Custom Connector**.
+3. **Connector Name:** `Proxmox VE Operator`
+4. **Service URL / Endpoint:** `https://pve-mcp.example.com/<MCP_SECRET_PATH>/mcp`
+5. **Authentication Method:** Select **OAuth 2.0 (Authorization Code)**.
+   * **Client ID:** Matches `OAUTH_CLIENT_ID` in `.env`.
+   * **Client Secret:** Matches `OAUTH_CLIENT_SECRET` in `.env`.
+   * **Authorization Endpoint:** `https://pve-mcp.example.com/oauth/authorize`
+   * **Token Endpoint:** `https://pve-mcp.example.com/oauth/token`
+6. Complete the browser authorization prompt. Muse will establish connection, verify tools, and enable you to query hypervisor status and guests directly in chat!
+
+### 2. Connecting to Google Gemini (Connected Apps)
 
 1. Open **Google Gemini** -> **Connected Apps** -> **Add Custom App**.
 2. **App Name:** `Proxmox VE Operator`
@@ -154,7 +168,8 @@ sudo systemctl enable --now gemini-proxmox
    * **Token URL:** `https://pve-mcp.example.com/oauth/token`
 5. Click **Connect**. Gemini will authorize via browser redirect, exchange tokens, and immediately discover all 12 Proxmox tools.
 
-### 2. Universal MCP Client Compatibility & Examples
+### 3. Universal MCP Client Compatibility & Examples
+
 
 Because this gateway implements the official **Model Context Protocol (MCP) Streamable HTTP** specification alongside RFC 6749 OAuth 2.0 / OpenID Connect, it functions as a universal hypervisor control plane for any compliant MCP client.
 
