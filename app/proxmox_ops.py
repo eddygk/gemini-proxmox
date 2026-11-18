@@ -1,7 +1,10 @@
+import logging
 import re
 from proxmoxer import ProxmoxAPI
 from proxmoxer.core import ResourceException
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ProxmoxOps:
@@ -19,6 +22,30 @@ class ProxmoxOps:
         except Exception:
             pass
         return "pve", "lxc", f"guest-{vmid}"
+
+    # --- Node-loop helpers (tolerate powered-off / unreachable nodes) ---
+    def _reachable_nodes(self) -> tuple[list[str], list[dict]]:
+        """Returns (online node names, skipped list). Nodes whose status != 'online' are skipped
+        so that a powered-off node (e.g. node1 while idle) does not fail cluster-wide reads."""
+        online, skipped = [], []
+        for n in self.pve.nodes.get():
+            if n.get("status") == "online":
+                online.append(n["node"])
+            else:
+                skipped.append({"node": n["node"], "reason": f"status={n.get('status', 'unknown')}"})
+        return online, skipped
+
+    def _per_node(self, fetch) -> tuple[list, list[dict]]:
+        """Runs fetch(node) on each online node; a per-node error is logged and skipped."""
+        results = []
+        online, skipped = self._reachable_nodes()
+        for node in online:
+            try:
+                results.append((node, fetch(node)))
+            except Exception as e:
+                logger.warning("Skipping node %s: %s", node, e)
+                skipped.append({"node": node, "reason": f"error: {e}"})
+        return results, skipped
 
     # --- Telemetry & Status ---
     def get_cluster_status(self) -> dict:
@@ -40,10 +67,14 @@ class ProxmoxOps:
 
     def get_guest_inventory(self) -> dict:
         guests = []
-        for n in self.pve.nodes.get():
-            node = n["node"]
+
+        def fetch(node):
+            return self.pve.nodes(node).qemu.get(), self.pve.nodes(node).lxc.get()
+
+        per_node, skipped = self._per_node(fetch)
+        for node, (qemu_list, lxc_list) in per_node:
             # QEMU Virtual Machines
-            for vm in self.pve.nodes(node).qemu.get():
+            for vm in qemu_list:
                 mem_tot = vm.get("maxmem", 0)
                 mem_used = vm.get("mem", 0)
                 guests.append({
@@ -58,7 +89,7 @@ class ProxmoxOps:
                     "ip": vm.get("tags", "").split(";")[0] if "10." in vm.get("tags", "") else None,
                 })
             # LXC Containers
-            for ct in self.pve.nodes(node).lxc.get():
+            for ct in lxc_list:
                 mem_tot = ct.get("maxmem", 0)
                 mem_used = ct.get("mem", 0)
                 tags = ct.get("tags", "")
@@ -74,13 +105,13 @@ class ProxmoxOps:
                     "memory_total_mb": round(mem_tot / (1024**2)),
                     "ip": ip_match.group(0) if ip_match else None,
                 })
-        return {"guest_count": len(guests), "guests": guests}
+        return {"guest_count": len(guests), "guests": guests, "offline_nodes": skipped}
 
     def get_storage_health(self) -> dict:
         pools = []
-        for n in self.pve.nodes.get():
-            node = n["node"]
-            for s in self.pve.nodes(node).storage.get():
+        per_node, skipped = self._per_node(lambda node: self.pve.nodes(node).storage.get())
+        for node, storage_list in per_node:
+            for s in storage_list:
                 tot = s.get("total", 0)
                 used = s.get("used", 0)
                 pools.append({
@@ -93,13 +124,14 @@ class ProxmoxOps:
                     "total_gb": round(tot / (1024**3), 2),
                     "percent_used": round((used / tot) * 100, 1) if tot else 0,
                 })
-        return {"storage_pools": pools}
+        return {"storage_pools": pools, "offline_nodes": skipped}
 
     def get_backup_tasks(self, limit: int = 10) -> dict:
         tasks = []
-        for n in self.pve.nodes.get():
-            node = n["node"]
-            for t in self.pve.nodes(node).tasks.get(typefilter="vzdump", limit=limit):
+        per_node, skipped = self._per_node(
+            lambda node: self.pve.nodes(node).tasks.get(typefilter="vzdump", limit=limit))
+        for node, task_list in per_node:
+            for t in task_list:
                 tasks.append({
                     "node": node,
                     "vmid": t.get("id"),
@@ -107,7 +139,7 @@ class ProxmoxOps:
                     "start_time": t.get("starttime"),
                     "end_time": t.get("endtime"),
                 })
-        return {"tasks": tasks}
+        return {"tasks": tasks, "offline_nodes": skipped}
 
     # --- Unified Guest Lifecycle Controls (LXC & QEMU) ---
     def start_guest(self, vmid: int) -> dict:
