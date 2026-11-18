@@ -5,7 +5,7 @@
 
 Last modified: 2026-11-18 00:40 ET by Claude
 
-This file is public and generic. The maintainer's own deployment notes (hosts, addresses, deploy history) are kept privately, outside this repo, and are loaded locally through an untracked `CLAUDE.local.md`. Never commit deployment-specific details (IPs, hostnames, domains, container IDs, key names) here or anywhere in this repo.
+This file is public and generic. The maintainer's own deployment notes (hosts, addresses, deploy history) are kept privately, outside this repo; an untracked local `CLAUDE.local.md` points to them. Never commit deployment-specific details (IPs, hostnames, domains, container IDs, key names) here or anywhere in this repo.
 
 ---
 
