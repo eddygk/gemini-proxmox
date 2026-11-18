@@ -26,7 +26,7 @@ class ProxmoxOps:
     # --- Node-loop helpers (tolerate powered-off / unreachable nodes) ---
     def _reachable_nodes(self) -> tuple[list[str], list[dict]]:
         """Returns (online node names, skipped list). Nodes whose status != 'online' are skipped
-        so that a powered-off node (e.g. node1 while idle) does not fail cluster-wide reads."""
+        so that a powered-off node does not fail cluster-wide reads."""
         online, skipped = [], []
         for n in self.pve.nodes.get():
             if n.get("status") == "online":
